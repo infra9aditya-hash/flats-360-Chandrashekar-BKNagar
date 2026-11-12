@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14201e">
+<title>G+4 Rental Flats: 360 Walkthrough</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flats 360">
+<!--LIB-CSS--><link rel="stylesheet" href="lib/pannellum.css"><!--/LIB-CSS-->
+<script src="hq.js" onerror="void 0"></script>
+<!--LIB-JS--><script src="lib/pannellum.js"></script><!--/LIB-JS-->
+<style>
+:root{
+  --ink:#14201e; --ink-a:rgba(20,32,30,.74); --paper:#f2f4ef; --sage:#9fcdb5; --lamp:#f2b84b;
+  --line:rgba(242,244,239,.18);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#0d1514;color:var(--paper);font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"SF Pro Text",Roboto,sans-serif}
+#pano{position:fixed;inset:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+/* glass panels */
+.glass{background:var(--ink-a);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--line);border-radius:16px}
+
+/* where am I */
+#where{position:fixed;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:20;padding:9px 18px 10px;text-align:center;max-width:min(62vw,420px)}
+#where b{display:block;font-size:16px;font-weight:600;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#where span{display:block;font-size:12.5px;color:var(--sage);margin-top:1px}
+
+/* quick jumps */
+#jumps{position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:20;display:flex;gap:8px}
+#jumps button{padding:9px 14px;border-radius:999px;font-size:13.5px;font-weight:500}
+#jumps button:hover{background:rgba(159,205,181,.22)}
+
+/* lift panel */
+#lift{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:20;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;border-radius:22px}
+#lift small{font-size:12px;color:var(--sage);margin-bottom:2px}
+#lift button{width:42px;height:42px;border-radius:50%;border:1.5px solid rgba(242,244,239,.55);background:rgba(13,21,20,.55);font-weight:600;font-size:15px;transition:background .15s,border-color .15s,color .15s}
+#lift button:hover{border-color:var(--sage)}
+#lift button.on{background:var(--lamp);border-color:var(--lamp);color:#241a05;box-shadow:0 0 16px rgba(242,184,75,.55)}
+
+/* mini map */
+#map{position:fixed;left:14px;bottom:max(14px,env(safe-area-inset-bottom));z-index:20;width:236px;padding:10px 10px 8px}
+#map header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+#map header b{font-size:13.5px;font-weight:600}
+#map header button{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:none;line-height:1}
+#mapsvg{display:block;width:100%;height:190px;border-radius:10px;background:rgba(13,21,20,.45)}
+#map.min #mapsvg,#map.min #mapnote{display:none}
+#map.min{width:auto}
+#mapnote{font-size:12px;color:var(--sage);margin:6px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{fill:rgba(242,244,239,.78);cursor:pointer;transition:fill .15s}
+.dot:hover{fill:var(--sage)}
+.dot.key{fill:var(--sage)}
+.dot.cur{fill:var(--lamp)}
+.mapedge{stroke:rgba(242,244,239,.22);stroke-width:3}
+#cone{fill:rgba(242,184,75,.38);stroke:var(--lamp);stroke-width:2}
+
+/* hotspots */
+.hs{width:46px;height:46px;margin:-23px 0 0 -23px;cursor:pointer}
+.hs .ring{position:absolute;inset:0;border-radius:50%;background:rgba(20,32,30,.5);border:2px solid rgba(255,255,255,.92);box-shadow:0 3px 14px rgba(0,0,0,.45);display:grid;place-items:center;font-size:15px;color:#fff;transition:transform .15s,background .15s}
+.hs.walk .ring::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--sage)}
+.hs.walk .ring{animation:pulse 2.4s ease-out infinite}
+.hs.up .ring,.hs.down .ring{background:rgba(242,184,75,.85);border-color:#fff;color:#241a05}
+.hs:hover .ring{transform:scale(1.14);background:rgba(159,205,181,.5)}
+.hs.up:hover .ring,.hs.down:hover .ring{background:var(--lamp)}
+.hs .lbl{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:13px;font-weight:500;padding:3px 10px;border-radius:999px;background:rgba(13,21,20,.72);color:var(--paper);pointer-events:none;text-shadow:none}
+@keyframes pulse{0%{box-shadow:0 3px 14px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,.55)}70%{box-shadow:0 3px 14px rgba(0,0,0,.45),0 0 0 16px rgba(255,255,255,0)}100%{box-shadow:0 3px 14px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}}
+@media (prefers-reduced-motion:reduce){.hs.walk .ring{animation:none}}
+
+/* offline status */
+#offline{position:fixed;top:max(72px,calc(env(safe-area-inset-top) + 58px));left:50%;transform:translateX(-50%);z-index:20;padding:6px 14px;font-size:12.5px;color:var(--sage);transition:opacity .6s;white-space:nowrap}
+#offline.gone{opacity:0;pointer-events:none}
+/* first-visit hint */
+#hint{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;padding:10px 18px;font-size:14px;transition:opacity .6s;text-align:center;max-width:90vw}
+#hint.gone{opacity:0;pointer-events:none}
+
+/* pannellum chrome that clashes */
+.pnlm-panorama-info{display:none!important}
+.pnlm-controls-container{top:max(14px,env(safe-area-inset-top))!important;left:14px!important}
+.pnlm-zoom-controls,.pnlm-fullscreen-toggle-button{border-radius:12px!important}
+
+@media (max-width:640px){
+  #where{max-width:48vw;padding:7px 12px 8px}
+  #where b{font-size:14px}
+  #jumps{top:auto;bottom:max(14px,env(safe-area-inset-bottom));right:14px;flex-direction:column}
+  #lift{top:44%;right:10px}
+  #lift button{width:38px;height:38px}
+  #map{width:176px}
+  #mapsvg{height:140px}
+  .hs{width:40px;height:40px;margin:-20px 0 0 -20px}
+  .hs .lbl{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div id="pano"></div>
+
+<div id="where" class="glass" aria-live="polite"><b id="whereRoom">Loading…</b><span id="whereFloor"></span></div>
+
+<nav id="jumps" aria-label="Quick jumps">
+  <button class="glass" id="goAerial">Aerial</button>
+  <button class="glass" id="goStreet">Street</button>
+</nav>
+
+<aside id="lift" class="glass" aria-label="Lift">
+  <small>Lift</small>
+  <button data-f="4">4</button>
+  <button data-f="3">3</button>
+  <button data-f="2">2</button>
+  <button data-f="1">1</button>
+  <button data-f="0">G</button>
+</aside>
+
+<aside id="map" class="glass">
+  <header><b id="mapTitle">Plan</b><button id="mapToggle" aria-label="Show or hide the plan">–</button></header>
+  <svg id="mapsvg" role="img" aria-label="Floor plan with your position"></svg>
+  <p id="mapnote">Tap a dot to jump there. East (street) is on the right.</p>
+</aside>
+
+<div id="offline" class="glass gone" aria-live="polite"></div>
+
+<div id="hint" class="glass">Drag to look around. Tap a ring to walk there.</div>
+
+<!--DATA-START-->
+<script>
+/* ===========================================================================
+   TOUR DATA. Positions come straight from render_all_360s.py (inches).
+   Edit LINKS further down if an arrow should go somewhere else.
+   =========================================================================== */
+const FLOOR_H = 120, EYE = 63;
+const RAW = [
+ ["EXT 01 Street front",[924,398,63],[684,398,260]],
+ ["EXT 02 Street north-east",[984,706,63],[354,398,260]],
+ ["EXT 03 Street south-east",[984,-60,63],[354,398,260]],
+ ["EXT 04 Gate / entrance",[696,398,63],[400,398,63]],
+ ["EXT 05 Aerial",[1584,-500,1100],[354,398,300]],
+ ["F1 Lift lobby",[293,450,183],[293,414,183]],
+ ["F1 Stair hall",[384,468,183],[384,608,183]],
+ ["F1 Stair mid-landing",[384,602,243],[384,488,243]],
+ ["F1 3BHK Living-Dining",[153,418,183],[213,418,183]],
+ ["F1 3BHK Kitchen",[210,285,183],[270,285,183]],
+ ["F1 3BHK Bedroom 1",[94,248,183],[154,248,183]],
+ ["F1 3BHK Bedroom 2",[97,542,183],[157,542,183]],
+ ["F1 3BHK Bedroom 3",[284,537,183],[344,537,183]],
+ ["F1 3BHK Toilet (common)",[72,331,183],[132,331,183]],
+ ["F1 3BHK Toilet 2",[192,562,183],[252,562,183]],
+ ["F1 3BHK Balcony",[32,418,183],[92,418,183]],
+ ["F1 1BHK Entry-Living",[384,384,183],[444,384,183]],
+ ["F1 1BHK Living-Kitchen",[467,250,183],[527,250,183]],
+ ["F1 1BHK Bedroom",[315,270,183],[375,270,183]],
+ ["F1 1BHK Toilet",[401,229,183],[461,229,183]],
+ ["F1 2BHK Living-Dining",[564,413,183],[624,413,183]],
+ ["F1 2BHK Kitchen",[640,249,183],[700,249,183]],
+ ["F1 2BHK Toilet",[573,249,183],[633,249,183]],
+ ["F1 2BHK Bedroom 1",[486,543,183],[546,543,183]],
+ ["F1 2BHK Bedroom 2",[614,543,183],[674,543,183]],
+ ["F1 2BHK Balcony",[676,394,183],[736,394,183]],
+ ["F2 Lift lobby",[293,450,303],[293,414,303]],
+ ["F2 Stair hall",[384,468,303],[384,608,303]],
+ ["F3 Lift lobby",[293,450,423],[293,414,423]],
+ ["F3 Stair hall",[384,468,423],[384,608,423]],
+ ["F4 Lift lobby",[293,450,543],[293,414,543]],
+ ["F4 Stair hall",[384,468,543],[384,608,543]],
+ ["GF 01 Parking entry",[644,418,63],[384,418,63]],
+ ["GF 02 Parking aisle",[384,298,63],[304,488,63]],
+ ["GF 03 Parking rear (two-wheelers)",[94,338,63],[94,538,63]],
+ ["GF 04 Lobby and lift",[293,450,63.8],[293,414,63.8]],
+ ["GF 05 Stair hall",[384,450,63.8],[384,608,63.8]],
+ ["GF 06 Security room",[299,543,63.8],[384,543,63.8]],
+ ["Terrace",[234,288,663],[484,488,663]]
+];
+
+/* Optional tuning: add degrees to every arrow in a scene if the enhanced
+   panorama came back slightly rotated. Example: {"F1_Lift_lobby": 6} */
+const YAW_FIX = {};
+
+const FLIP = (typeof location !== 'undefined') && /[?&]flip\b/.test(location.search);
+const SGN = FLIP ? -1 : 1;
+const D2R = Math.PI/180;
+const fileOf = n => n.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+const norm = a => ((a+180)%360+360)%360-180;
+
+const FLOOR_TITLE = {EXT:'Outside', GF:'Ground floor', F1:'Floor 1', F2:'Floor 2', F3:'Floor 3', F4:'Floor 4', R:'Roof'};
+const flatRe = /^F1 (3BHK|1BHK|2BHK) /;
+
+function floorKey(name){
+  if(name.startsWith('EXT')) return 'EXT';
+  if(name.startsWith('GF')) return 'GF';
+  if(name==='Terrace') return 'R';
+  return 'F'+name.match(/^F(\d)/)[1];
+}
+function prettyLabel(name){
+  if(flatRe.test(name)) return name.replace(/^F1 (\w+) /,'$1 ');
+  return name.replace(/^(EXT|GF) \d\d /,'').replace(/^F\d /,'');
+}
+
+const nodes = {};
+function addNode(id, file, name, floor, eye, tgt){
+  nodes[id] = {
+    id, file, name, floor,
+    floorNo: floor==='GF'?0 : /^F\d$/.test(floor)? +floor.slice(1) : -1,
+    label: prettyLabel(name),
+    x: eye[0], y: eye[1], z: eye[2],
+    phi: Math.atan2(tgt[1]-eye[1], tgt[0]-eye[0]),
+    aerial: name==='EXT 05 Aerial',
+    flat: flatRe.test(name)
+  };
+}
+RAW.forEach(([name,eye,tgt])=>{
+  const file = fileOf(name);
+  if(flatRe.test(name)){
+    // floors 2 to 4 reuse the Floor 1 flat interiors
+    for(let n=1;n<=4;n++) addNode(`F${n}__${file}`, file, name, 'F'+n, [eye[0],eye[1],eye[2]+(n-1)*FLOOR_H], tgt);
+  } else addNode(file, file, name, floorKey(name), eye, tgt);
+});
+
+/* ---- id helpers ---- */
+const X = fileOf;
+const LOBBY = n => n===0 ? X('GF 04 Lobby and lift') : X(`F${n} Lift lobby`);
+const HALL  = n => n===0 ? X('GF 05 Stair hall')     : X(`F${n} Stair hall`);
+const FLAT  = (n,name) => `F${n}__${X(name)}`;
+const MID = X('F1 Stair mid-landing'), TERRACE = X('Terrace');
+
+/* ===========================================================================
+   LINKS: who connects to whom. Each pair gives an arrow in both directions.
+   'up' pairs are stairs: first id is the lower one.
+   =========================================================================== */
+const LINKS = [];
+const link = (a,b,kind='walk',oneway=false)=>LINKS.push({a,b,kind,oneway});
+
+// outside: aerial, street, gate, parking
+link(X('EXT 05 Aerial'), X('EXT 01 Street front'), 'walk', true);
+link(X('EXT 01 Street front'), X('EXT 02 Street north-east'));
+link(X('EXT 01 Street front'), X('EXT 03 Street south-east'));
+link(X('EXT 01 Street front'), X('EXT 04 Gate / entrance'));
+link(X('EXT 04 Gate / entrance'), X('GF 01 Parking entry'));
+
+// ground floor
+link(X('GF 01 Parking entry'), X('GF 02 Parking aisle'));
+link(X('GF 01 Parking entry'), LOBBY(0));
+link(X('GF 02 Parking aisle'), X('GF 03 Parking rear (two-wheelers)'));
+link(X('GF 02 Parking aisle'), HALL(0));
+link(X('GF 03 Parking rear (two-wheelers)'), LOBBY(0));
+link(LOBBY(0), HALL(0));
+link(LOBBY(0), X('GF 06 Security room'));
+
+// floors 1 to 4 (identical flats)
+for(let n=1;n<=4;n++){
+  const f = name => FLAT(n,name);
+  link(LOBBY(n), HALL(n));
+  link(LOBBY(n), f('F1 3BHK Living-Dining'));
+  link(LOBBY(n), f('F1 1BHK Entry-Living'));
+  link(HALL(n),  f('F1 2BHK Living-Dining'));
+  // 3BHK
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Kitchen'));
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Balcony'));
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Bedroom 1'));
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Bedroom 2'));
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Bedroom 3'));
+  link(f('F1 3BHK Living-Dining'), f('F1 3BHK Toilet (common)'));
+  link(f('F1 3BHK Bedroom 2'),     f('F1 3BHK Toilet 2'));
+  // 1BHK
+  link(f('F1 1BHK Entry-Living'), f('F1 1BHK Living-Kitchen'));
+  link(f('F1 1BHK Entry-Living'), f('F1 1BHK Bedroom'));
+  link(f('F1 1BHK Bedroom'),      f('F1 1BHK Toilet'));
+  // 2BHK
+  link(f('F1 2BHK Living-Dining'), f('F1 2BHK Kitchen'));
+  link(f('F1 2BHK Living-Dining'), f('F1 2BHK Balcony'));
+  link(f('F1 2BHK Living-Dining'), f('F1 2BHK Bedroom 1'));
+  link(f('F1 2BHK Living-Dining'), f('F1 2BHK Bedroom 2'));
+  link(f('F1 2BHK Living-Dining'), f('F1 2BHK Toilet'));
+}
+
+// stairs
+link(HALL(0), HALL(1), 'up');
+link(HALL(1), MID,     'up');
+link(MID,     HALL(2), 'up');
+link(HALL(2), HALL(3), 'up');
+link(HALL(3), HALL(4), 'up');
+link(HALL(4), TERRACE, 'up');
+
+/* ===========================================================================
+   Graph + arrow placement
+   =========================================================================== */
+const adj = {};
+Object.keys(nodes).forEach(id=>adj[id]=[]);
+LINKS.forEach(({a,b,kind,oneway})=>{
+  if(kind==='up'){ adj[a].push({to:b,kind:'up'}); adj[b].push({to:a,kind:'down'}); }
+  else { adj[a].push({to:b,kind:'walk'}); if(!oneway) adj[b].push({to:a,kind:'walk'}); }
+});
+
+function floorPitch(dist){
+  const d = Math.min(Math.max(dist*0.6,140),260);   // arrows sit in the lower-middle of the view
+  return -Math.atan2(EYE,d)/D2R;
+}
+function stairLabel(dir,dest){
+  if(dest.id===MID) return dir==='up' ? 'Stairs up' : 'Stairs down';
+  if(dest.floor==='R') return 'Up to terrace';
+  const t = dest.floor==='GF' ? 'ground floor' : 'floor '+dest.floor.slice(1);
+  return (dir==='up' ? 'Up to ' : 'Down to ') + t;
+}
+function hotspotsFor(src){
+  const fix = YAW_FIX[src.file] || 0;
+  return adj[src.id].map(l=>{
+    const dst = nodes[l.to];
+    const dx = dst.x-src.x, dy = dst.y-src.y, dist = Math.hypot(dx,dy), b = Math.atan2(dy,dx);
+    if(l.kind==='walk'){
+      return {
+        to:dst.id, kind:'walk', label:dst.label,
+        yaw: norm(SGN*(src.phi-b)/D2R + fix),
+        pitch: src.aerial ? Math.atan2(0-src.z, dist)/D2R : floorPitch(dist),
+        arrive: norm(SGN*(dst.phi-b)/D2R)
+      };
+    }
+    let yaw = 0, pitch = l.kind==='up' ? 22 : -30;
+    if(src.id===MID) yaw = l.kind==='up' ? 180 : 0;
+    if(src.floor==='R' && l.kind==='down'){ yaw = norm(SGN*(src.phi-b)/D2R); pitch = -35; }
+    return {to:dst.id, kind:l.kind, label:stairLabel(l.kind,dst), yaw:norm(yaw+fix), pitch, arrive:0};
+  });
+}
+
+const START = X('EXT 01 Street front'), AERIAL = X('EXT 05 Aerial');
+const TOUR = {nodes, adj, LINKS, hotspotsFor, START, AERIAL, LOBBY, HALL, FLOOR_TITLE, MID, TERRACE};
+if(typeof module!=='undefined') module.exports = TOUR;
+</script>
+<!--DATA-END-->
+
+<script>
+/* ===========================================================================
+   Viewer
+   =========================================================================== */
+(function(){
+  const {nodes, adj, hotspotsFor, START, AERIAL, LOBBY, HALL, FLOOR_TITLE} = TOUR;
+  const PANO_DIR = window.PANO_DIR || 'panos/';
+  const panoURL = f => (window.PANOS && window.PANOS[f]) || (PANO_DIR + ((window.PANO_FILES && window.PANO_FILES[f]) || (f + '.jpg')));
+  let viewer, current = null, mapFloor = null, mapNodes = [];
+
+  const $ = id => document.getElementById(id);
+
+  function go(id, yaw, pitch){
+    if(!nodes[id]) return;
+    viewer.loadScene(id, pitch||0, yaw||0, viewer.getHfov());
+  }
+
+  function makeHotspot(div, a){
+    div.classList.add('hs', a.kind);
+    const ring = document.createElement('span');
+    ring.className = 'ring';
+    ring.textContent = a.kind==='up' ? '▲' : a.kind==='down' ? '▼' : '';
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = a.label;
+    div.appendChild(ring); div.appendChild(lbl);
+    div.setAttribute('role','button');
+    div.setAttribute('aria-label', a.label);
+  }
+
+  const scenes = {};
+  Object.values(nodes).forEach(n=>{
+    scenes[n.id] = {
+      title: n.label,
+      type: 'equirectangular',
+      panorama: panoURL(n.file),
+      hfov: 100, minHfov: 50, maxHfov: 120, pitch: 0, yaw: 0,
+      hotSpots: hotspotsFor(n).map(a=>({
+        type:'custom', pitch:a.pitch, yaw:a.yaw,
+        cssClass:'hs-wrap',
+        createTooltipFunc: makeHotspot, createTooltipArgs: a,
+        clickHandlerFunc: ()=>go(a.to, a.arrive, 0)
+      }))
+    };
+  });
+
+  const wanted = decodeURIComponent((location.hash||'').slice(1));
+  const first = nodes[wanted] ? wanted : START;
+
+  viewer = pannellum.viewer('pano', {
+    default: {firstScene:first, sceneFadeDuration:700, autoLoad:true, showControls:true, compass:false, friction:0.12},
+    scenes
+  });
+
+  /* ---- UI sync ---- */
+  const preloaded = new Set();
+  function preload(id){
+    adj[id].slice(0,6).forEach(l=>{
+      const f = nodes[l.to].file;
+      if(preloaded.has(f)) return;
+      preloaded.add(f);
+      const im = new Image(); im.decoding='async'; im.src = panoURL(f);
+    });
+  }
+
+  function onScene(id){
+    const n = nodes[id]; if(!n) return;
+    current = n;
+    $('whereRoom').textContent = n.label;
+    $('whereFloor').textContent = n.floor==='R' ? 'Roof' : FLOOR_TITLE[n.floor];
+    document.title = n.label + ' | G+4 Rental Flats';
+    history.replaceState(null,'','#'+encodeURIComponent(id));
+    document.querySelectorAll('#lift button').forEach(b=>b.classList.toggle('on', +b.dataset.f===n.floorNo));
+    drawMap(n.floor);
+    markMap();
+    $('mapnote').textContent = n.label;
+    preload(id);
+  }
+  viewer.on('scenechange', onScene);
+  viewer.on('load', ()=>{ if(!current) onScene(viewer.getScene()); });
+  setTimeout(()=>{ if(!current) onScene(viewer.getScene()); }, 600);
+
+  window.addEventListener('hashchange', ()=>{
+    const id = decodeURIComponent(location.hash.slice(1));
+    if(nodes[id] && (!current || current.id!==id)) go(id,0,0);
+  });
+
+  /* ---- jumps and lift ---- */
+  $('goAerial').onclick = ()=>go(AERIAL,0,0);
+  $('goStreet').onclick = ()=>go(START,0,0);
+  document.querySelectorAll('#lift button').forEach(b=>{
+    b.onclick = ()=>go(LOBBY(+b.dataset.f),0,0);
+  });
+
+  /* ---- mini map ---- */
+  const svg = $('mapsvg'), NS = 'http://www.w3.org/2000/svg';
+  const el = (tag,attrs)=>{ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; };
+
+  function drawMap(floor){
+    if(floor===mapFloor) return;
+    mapFloor = floor;
+    $('mapTitle').textContent = FLOOR_TITLE[floor];
+    let list = Object.values(nodes).filter(n=>n.floor===floor && !n.aerial);
+    if(floor==='R') list = [nodes[TOUR.TERRACE], nodes[HALL(4)]];
+    mapNodes = list;
+    const xs = list.map(n=>n.x), ys = list.map(n=>n.y);
+    const pad = 70;
+    let minx=Math.min(...xs)-pad, maxx=Math.max(...xs)+pad, miny=Math.min(...ys)-pad, maxy=Math.max(...ys)+pad;
+    const ar = 236/190; // match the panel shape
+    let w=maxx-minx, h=maxy-miny;
+    if(w/h<ar){ const nw=h*ar; minx-=(nw-w)/2; w=nw; } else { const nh=w/ar; miny-=(nh-h)/2; h=nh; }
+    svg.setAttribute('viewBox', `${minx} ${-(miny+h)} ${w} ${h}`);
+    svg.innerHTML = '';
+    const ids = new Set(list.map(n=>n.id));
+    TOUR.LINKS.forEach(L=>{
+      if(L.kind!=='walk' || !ids.has(L.a) || !ids.has(L.b)) return;
+      const a=nodes[L.a], b=nodes[L.b];
+      svg.appendChild(el('line',{class:'mapedge',x1:a.x,y1:-a.y,x2:b.x,y2:-b.y}));
+    });
+    const r = w/42;
+    svg.appendChild(el('path',{id:'cone',d:''}));
+    list.forEach(n=>{
+      const c = el('circle',{class:'dot'+(/lobby|Lobby|Stair hall/.test(n.label)?' key':''),cx:n.x,cy:-n.y,r:r,'data-id':n.id});
+      const t = el('title',{}); t.textContent = n.label; c.appendChild(t);
+      c.addEventListener('click',()=>go(n.id,0,0));
+      svg.appendChild(c);
+    });
+    svg.dataset.r = r;
+  }
+  function markMap(){
+    svg.querySelectorAll('.dot').forEach(c=>c.classList.toggle('cur', current && c.dataset.id===current.id));
+  }
+
+  let lastKey = '';
+  function tick(){
+    requestAnimationFrame(tick);
+    if(!current || !viewer) return;
+    const cone = svg.querySelector('#cone'); if(!cone) return;
+    if(!mapNodes.some(n=>n.id===current.id)){ cone.setAttribute('d',''); return; }
+    const yaw = viewer.getYaw(), hf = viewer.getHfov();
+    const key = current.id+'|'+yaw.toFixed(1)+'|'+hf.toFixed(0);
+    if(key===lastKey) return; lastKey = key;
+    const hd = current.phi - SGNF()*yaw*Math.PI/180;      // world heading you are facing
+    const a = hf/2*Math.PI/180, R = (+svg.dataset.r||12)*4.2;
+    const cx = current.x, cy = -current.y;
+    const p1 = [cx+R*Math.cos(hd-a), cy-R*Math.sin(hd-a)];
+    const p2 = [cx+R*Math.cos(hd+a), cy-R*Math.sin(hd+a)];
+    cone.setAttribute('d', `M${cx},${cy} L${p1[0]},${p1[1]} A${R},${R} 0 0 0 ${p2[0]},${p2[1]} Z`);
+    // keep the dots on top of the cone
+    svg.querySelectorAll('.dot').forEach(d=>svg.appendChild(d));
+  }
+  function SGNF(){ return /[?&]flip\b/.test(location.search) ? -1 : 1; }
+  requestAnimationFrame(tick);
+
+  $('mapToggle').onclick = ()=>{
+    const m = $('map'); m.classList.toggle('min');
+    $('mapToggle').textContent = m.classList.contains('min') ? '+' : '–';
+  };
+  if(window.matchMedia('(max-width:640px)').matches){ $('map').classList.add('min'); $('mapToggle').textContent='+'; }
+
+
+  /* ---- offline: installable app that saves every panorama on first visit ---- */
+  const CACHE = 'tour-v1';
+  const chip = $('offline');
+  function say(t, keep){ chip.textContent=t; chip.classList.remove('gone'); if(!keep) setTimeout(()=>chip.classList.add('gone'),4500); }
+  async function saveAll(){
+    const files = [...new Set(Object.values(nodes).map(n=>panoURL(n.file)))];
+    const cache = await caches.open(CACHE);
+    if(window.PANO_FILES){ try{ await cache.add('hq.js'); }catch(e){} }
+    let done = 0, fresh = 0, next = 0;
+    const worker = async ()=>{
+      while(next < files.length){
+        const u = files[next++];
+        try{
+          if(!(await cache.match(u))){ const r = await fetch(u); if(!r.ok) throw 0; await cache.put(u,r); fresh++; }
+        }catch(e){ return; }
+        done++;
+        if(fresh) say('Saving for offline: '+done+' of '+files.length, true);
+      }
+    };
+    await Promise.all([worker(),worker(),worker()]);
+    if(done===files.length) say(fresh ? 'Saved. This tour now works offline.' : 'Available offline.');
+  }
+  if('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && 'caches' in window){
+    navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(saveAll).catch(()=>{});
+    if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  }
+
+  /* ---- first-visit hint ---- */
+  const hint = $('hint');
+  const hide = ()=>hint.classList.add('gone');
+  setTimeout(hide, 7000);
+  ['pointerdown','keydown','wheel'].forEach(ev=>window.addEventListener(ev,hide,{once:true,passive:true}));
+})();
+</script>
+<noscript>This walkthrough needs JavaScript.</noscript>
+</body>
+</html>
